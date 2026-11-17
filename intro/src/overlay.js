@@ -4,7 +4,8 @@ import { TEXT, TEAM } from './config.js';
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
 const easeOutBack = (x) => { x = clamp(x); const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
-const GREEN = '#39ff8f';
+const GREEN = '#7a5cff'; // brand blue-violet
+const brandGrad = (g, x0, x1) => { const gr = g.createLinearGradient(x0, 0, x1, 0); gr.addColorStop(0, '#3f7bff'); gr.addColorStop(1, '#a845ff'); return gr; };
 
 function hash(n) { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); }
 
@@ -109,7 +110,7 @@ function killfeed(g, t, t0, t1, entries, W, H, S) {
     g.beginPath(); g.roundRect(x, y, w, h, 6 * S); g.fill();
     g.fillStyle = GREEN; g.fillRect(x, y, 5 * S, h);
     g.textBaseline = 'middle';
-    g.fillStyle = GREEN; g.fillText(e[0], x + 20 * S, y + h / 2 + 1 * S);
+    g.fillStyle = '#8fb0ff'; g.fillText(e[0], x + 20 * S, y + h / 2 + 1 * S);
     grenadeIcon(g, x + 20 * S + wA + 26 * S, y + h / 2, 12 * S);
     g.fillStyle = '#ff5a5a'; g.fillText(e[1], x + 20 * S + wA + 54 * S, y + h / 2 + 1 * S);
     g.restore();
@@ -126,7 +127,7 @@ function killfeed(g, t, t0, t1, entries, W, H, S) {
     g.font = `${44 * S}px Anton`; g.letterSpacing = `${4 * S}px`;
     g.textAlign = 'right'; g.textBaseline = 'middle';
     g.shadowColor = GREEN; g.shadowBlur = 24 * S;
-    g.fillStyle = GREEN; g.fillText(TEXT.wiped, 0, 0);
+    g.fillStyle = brandGrad(g, -300 * S, 0); g.fillText(TEXT.wiped, 0, 0);
     g.restore();
   }
 }

@@ -17,7 +17,7 @@ export const SUN_DIR = new THREE.Vector3(-0.78, 0.11, -0.6).normalize();
 // ---------------- textures ----------------
 function cnv(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 
-export function makeTextures() {
+export function makeTextures(brand = {}) {
   const T = {};
   // fire puff
   {
@@ -136,7 +136,7 @@ export function makeTextures() {
   // grenade body print
   {
     const W = 1024, H = 512, c = cnv(W, H), g = c.getContext('2d');
-    g.fillStyle = '#3f5a1f'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#26301c'; g.fillRect(0, 0, W, H);
     const r = rng(8);
     for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(0,0,0,${r() * 0.08})`; g.fillRect(r() * W, r() * H, 3, 3); }
     // segmentation grooves
@@ -145,14 +145,19 @@ export function makeTextures() {
     for (let j = 1; j < 6; j++) { const y = (j / 6) * H; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
     // logo centered at u=0.5
     g.save();
-    g.translate(W / 2, H * 0.48);
-    g.rotate(-0.12);
-    g.font = '120px Anton'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.letterSpacing = '4px';
-    g.lineWidth = 12; g.strokeStyle = '#13200a'; g.strokeText(TEAM.name, 0, 0);
-    g.fillStyle = '#e9f04a'; g.fillText(TEAM.name, 0, 0);
-    g.font = '60px Anton'; g.letterSpacing = '10px';
-    g.lineWidth = 8; g.strokeText(TEAM.sub, 0, 92);
-    g.fillStyle = '#e9f04a'; g.fillText(TEAM.sub, 0, 92);
+    g.translate(W / 2, H * 0.47);
+    g.rotate(-0.1);
+    if (brand.wordmark) {
+      const im = brand.wordmark, w = 600, h = w * im.height / im.width;
+      g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 10;
+      g.drawImage(im, -w / 2, -h / 2 - 20, w, h);
+      g.drawImage(im, -w / 2, -h / 2 - 20, w, h);
+      if (brand.subtitle) { const s2 = brand.subtitle, w2 = 330; g.drawImage(s2, -w2 / 2, h / 2 - 6, w2, w2 * s2.height / s2.width); }
+    } else {
+      g.font = '120px Anton'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.letterSpacing = '4px';
+      g.lineWidth = 12; g.strokeStyle = '#13200a'; g.strokeText(TEAM.name, 0, 0);
+      g.fillStyle = '#e9f04a'; g.fillText(TEAM.name, 0, 0);
+    }
     g.restore();
     T.grenade = new THREE.CanvasTexture(c);
     T.grenade.colorSpace = THREE.SRGBColorSpace;
@@ -176,7 +181,7 @@ export function makeSky() {
       void main(){
         vec3 d = normalize(vDir);
         float h = d.y;
-        vec3 zen = vec3(0.06,0.11,0.26), hor = vec3(0.95,0.48,0.26), gnd = vec3(0.16,0.12,0.11);
+        vec3 zen = vec3(0.08,0.06,0.26), hor = vec3(0.95,0.44,0.34), gnd = vec3(0.14,0.11,0.13);
         vec3 col = mix(hor, zen, pow(clamp(h,0.,1.), 0.42));
         if (h < 0.) col = mix(hor*0.75, gnd, clamp(-h*5.,0.,1.));
         float s = max(dot(d, sunDir), 0.);
@@ -186,7 +191,7 @@ export function makeSky() {
           vec2 uv = d.xz/(h+0.12)*1.3 + vec2(uTime*0.01, 0.);
           float c = fbm(uv*1.6);
           c = smoothstep(0.52, 0.85, c) * smoothstep(0.0, 0.18, h);
-          vec3 cc = mix(vec3(0.55,0.32,0.30), vec3(1.25,0.8,0.55), pow(s,3.)*0.8+0.25);
+          vec3 cc = mix(vec3(0.42,0.26,0.42), vec3(1.25,0.75,0.6), pow(s,3.)*0.8+0.25);
           col = mix(col, cc, c*0.85);
         }
         col += vec3(1.0,0.85,0.6)*smoothstep(0.9994,0.9997,s)*12.;

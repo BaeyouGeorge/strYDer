@@ -19,7 +19,7 @@ import { TEAM } from './config.js';
 const Q = new URLSearchParams(location.search);
 const W = +(Q.get('w') || 1280), H = +(Q.get('h') || 720);
 const FPS = 30;
-export const DURATION = 18.6;
+export const DURATION = 19.4;
 
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -71,7 +71,7 @@ document.body.appendChild(overlay);
 const og = overlay.getContext('2d');
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x7a5f55, 90, 900);
+scene.fog = new THREE.Fog(0x6c5466, 90, 900);
 const camera = new THREE.PerspectiveCamera(40, W / H, 0.05, 2000);
 
 const T = makeTextures();
@@ -177,90 +177,93 @@ logo.scene.background = new THREE.Color(0x000000);
 logo.scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 logo.scene.environmentIntensity = 0.6;
 
+async function loadTex(url) {
+  const t = await new THREE.TextureLoader().loadAsync(url);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+
 async function buildLogo() {
-  let font;
-  try {
-    const json = await new TTFLoader().loadAsync('/node_modules/@fontsource/russo-one/files/russo-one-latin-400-normal.woff');
-    font = new FontLoader().parse(json);
-  } catch (e) {
-    font = await new FontLoader().loadAsync('/node_modules/three/examples/fonts/helvetiker_bold.typeface.json');
-  }
-  const face = new THREE.MeshStandardMaterial({ color: 0x3dff94, emissive: 0x0e8a44, emissiveIntensity: 0.55, metalness: 0.7, roughness: 0.2 });
-  const side = new THREE.MeshStandardMaterial({ color: 0x0b5a2d, emissive: 0x032612, emissiveIntensity: 0.6, metalness: 0.9, roughness: 0.3 });
-  const size = 1.0, spacing = 0.06;
-  const geos = [...TEAM.name].map(ch => {
-    const g = new TextGeometry(ch, { font, size, height: 0.32, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.03, bevelSegments: 3 });
-    g.computeBoundingBox(); return g;
-  });
-  const widths = geos.map(g => g.boundingBox.max.x - g.boundingBox.min.x);
-  const total = widths.reduce((a, b) => a + b, 0) + spacing * (geos.length - 1);
-  let x = -total / 2;
+  const word = await loadTex('/brand/wordmark.png');
+  const sub = await loadTex('/brand/subtitle.png');
+  const tag = await loadTex('/brand/tagline.png');
+  const WW = 7.4, WH = WW * word.image.height / word.image.width;
+  // letter strips (u ranges) so the wordmark can assemble letter by letter
+  const cuts = [0, 0.2, 0.335, 0.47, 0.6, 0.735, 0.845, 1];
   const rr = rng(66);
-  geos.forEach((g, i) => {
-    const bb = g.boundingBox;
-    g.translate(-(bb.min.x + bb.max.x) / 2, -(bb.min.y + bb.max.y) / 2, -0.16);
-    const m = new THREE.Mesh(g, [face, side]);
-    const final = V3(x + widths[i] / 2, 0, 0);
-    x += widths[i] + spacing;
+  const delays = [0, 0.32, 0.12, 0.44, 0.2, 0.36, 0.06];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const u0 = cuts[i], u1 = cuts[i + 1], w = (u1 - u0) * WW;
+    const g = new THREE.PlaneGeometry(w, WH);
+    const uv = g.attributes.uv;
+    for (let k = 0; k < uv.count; k++) uv.setX(k, u0 + uv.getX(k) * (u1 - u0));
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: word, transparent: true, depthWrite: false, color: new THREE.Color(1.5, 1.5, 1.6) }));
+    const final = V3(-WW / 2 + (u0 + u1) / 2 * WW, 0.2, 0);
     const ang = rr() * Math.PI * 2;
     const start = V3(Math.cos(ang) * (5 + rr() * 4), Math.sin(ang) * (3 + rr() * 3), -6 + rr() * 14);
-    m.userData = { final, start, rot: V3((rr() - 0.5) * 7, (rr() - 0.5) * 9, (rr() - 0.5) * 5), delay: [0, 0.32, 0.12, 0.44, 0.2, 0.36, 0.06][i % 7] * 0.9 };
+    m.userData = { final, start, rot: V3((rr() - 0.5) * 7, (rr() - 0.5) * 9, (rr() - 0.5) * 5), delay: delays[i] * 0.9 };
     logo.scene.add(m); logo.letters.push(m);
-  });
-  logo.total = total;
-  // subtitle
-  const sg = new TextGeometry(TEAM.sub.split('').join(' '), { font, size: 0.24, height: 0.05, curveSegments: 4 });
-  sg.computeBoundingBox(); sg.translate(-(sg.boundingBox.max.x + sg.boundingBox.min.x) / 2, 0, 0);
-  logo.sub = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbfffd8, emissiveIntensity: 0.8, transparent: true, opacity: 0 }));
-  logo.sub.position.set(0, -0.95, 0.05);
-  logo.scene.add(logo.sub);
-  // decorations
+  }
+  logo.total = WW;
+  const plane = (tex, width, y, col) => {
+    const h = width * tex.image.height / tex.image.width;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(width, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0, color: col }));
+    m.position.set(0, y, 0.05); logo.scene.add(m); return m;
+  };
+  logo.sub = plane(sub, 5.0, -0.85, new THREE.Color(1.4, 1.4, 1.5));
+  logo.tag = plane(tag, 2.1, -1.65, new THREE.Color(1.3, 1.3, 1.4));
   const add = (tex, color) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false })); logo.scene.add(s); return s; };
-  logo.rays = add(T.rays, new THREE.Color(0.12, 0.6, 0.3)); logo.rays.position.z = -3;
-  logo.streak = add(T.streak, new THREE.Color(0.5, 1.6, 0.9)); logo.streak.position.z = -0.5;
-  logo.glint = add(T.glow, new THREE.Color(3, 3, 3));
-  logo.glintH = add(T.streak, new THREE.Color(2, 2, 2));
+  logo.rays = add(T.rays, new THREE.Color(0.25, 0.2, 0.75)); logo.rays.position.z = -3;
+  logo.rays2 = add(T.rays, new THREE.Color(0.45, 0.12, 0.6)); logo.rays2.position.z = -3.2;
+  logo.streak = add(T.streak, new THREE.Color(0.9, 0.7, 2.2)); logo.streak.position.z = -0.5;
+  logo.glint = add(T.glow, new THREE.Color(2.5, 2.5, 3));
+  logo.glintH = add(T.streak, new THREE.Color(1.8, 1.8, 2.4));
   logo.sparks = [];
-  for (let i = 0; i < 70; i++) { const s = add(T.glow, new THREE.Color(0.6, 2.5, 1.2)); logo.sparks.push({ s, a: rr() * 6.28, sp: 1.5 + rr() * 5, y: (rr() - 0.5) * 2, z: (rr() - 0.5) * 3, t0: rr() * 0.6 }); }
-  logo.key = new THREE.PointLight(0xffffff, 0, 0, 2); logo.scene.add(logo.key);
-  logo.fill = new THREE.DirectionalLight(0x9fffd0, 1.2); logo.fill.position.set(-3, 4, 6); logo.scene.add(logo.fill);
-  logo.scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+  for (let i = 0; i < 80; i++) {
+    const c = rr() < 0.5 ? new THREE.Color(0.6, 1.0, 3.0) : new THREE.Color(2.0, 0.7, 3.0);
+    const s = add(T.glow, c); logo.sparks.push({ s, a: rr() * 6.28, sp: 1.5 + rr() * 5, y: (rr() - 0.5) * 2, z: (rr() - 0.5) * 3, t0: rr() * 0.6 });
+  }
 }
 
 function updateLogo(t) {
   const lt = t - 15.2;
-  logo.cam.position.set(Math.sin(lt * 0.3) * 0.6, 0.15, lerp(14.5, 12.2, easeOut(lt / 3.2)));
-  logo.cam.lookAt(0, 0, 0);
+  logo.cam.position.set(Math.sin(lt * 0.3) * 0.5, 0.0, lerp(14.5, 12.0, easeOut(lt / 3.6)));
+  logo.cam.lookAt(0, -0.2, 0);
   logo.letters.forEach((m) => {
     const d = m.userData;
-    const k = easeOutExpo((lt - 0.15 - d.delay) / 0.85);
-    m.visible = lt - 0.15 - d.delay > 0;
+    const a = lt - 0.15 - d.delay;
+    const k = easeOutExpo(a / 0.85);
+    m.visible = a > 0;
     m.position.copy(vlerp(d.start, d.final, k));
     m.rotation.set(d.rot.x * (1 - k), d.rot.y * (1 - k), d.rot.z * (1 - k));
-    const sc = lerp(0.3, 1, k); m.scale.setScalar(sc);
+    m.scale.setScalar(lerp(0.3, 1, k));
+    // energy flicker once assembled
+    const f = 1.45 + 0.12 * Math.sin(lt * 23 + d.delay * 40) * Math.exp(-Math.max(0, a - 0.8) * 1.5);
+    m.material.color.setRGB(f, f, f * 1.07);
+    m.material.opacity = clamp(a / 0.15);
   });
   const settled = lt - 1.25;
   logo.sub.material.opacity = clamp((lt - 1.45) / 0.4);
-  logo.sub.position.y = -0.95 - (1 - easeOut((lt - 1.45) / 0.5)) * 0.25;
+  logo.sub.position.y = -0.85 - (1 - easeOut((lt - 1.45) / 0.5)) * 0.25;
+  logo.tag.material.opacity = clamp((lt - 2.3) / 0.5);
+  logo.tag.position.x = (1 - easeOut((lt - 2.3) / 0.6)) * -0.6;
   const pulse = settled > 0 ? Math.exp(-settled * 2.5) : 0;
-  logo.rays.visible = lt > 0.9;
-  logo.rays.material.opacity = clamp((lt - 0.9) / 0.4) * (0.55 + 0.6 * pulse);
-  const rs = 7 + pulse * 3 + lt * 0.3;
-  logo.rays.scale.set(rs * 1.6, rs, 1);
-  logo.rays.material.rotation = lt * 0.12;
+  for (const [r, dir] of [[logo.rays, 1], [logo.rays2, -1]]) {
+    r.visible = lt > 0.9;
+    r.material.opacity = clamp((lt - 0.9) / 0.4) * (0.55 + 0.6 * pulse);
+    const rs = 7.5 + pulse * 3 + lt * 0.3;
+    r.scale.set(rs * 1.7, rs, 1);
+    r.material.rotation = lt * 0.1 * dir + (dir < 0 ? 0.6 : 0);
+  }
   logo.streak.visible = lt > 1.0;
   logo.streak.material.opacity = clamp((lt - 1.0) / 0.2) * (0.35 + 1.2 * pulse);
   logo.streak.scale.set(18 + pulse * 8, 0.35, 1);
-  // glint sweeping across at ~1.9s
   const gk = (lt - 1.85) / 0.6;
   logo.glint.visible = logo.glintH.visible = gk > 0 && gk < 1;
   const gx = lerp(-logo.total / 2 - 0.5, logo.total / 2 + 0.5, ease(gk));
-  logo.glint.position.set(gx, 0.38, 0.4); logo.glint.scale.set(0.5, 0.5, 1);
-  logo.glintH.position.set(gx, 0.38, 0.42); logo.glintH.scale.set(2.4, 0.12, 1);
+  logo.glint.position.set(gx, 0.45, 0.4); logo.glint.scale.set(0.5, 0.5, 1);
+  logo.glintH.position.set(gx, 0.45, 0.42); logo.glintH.scale.set(2.4, 0.12, 1);
   logo.glint.material.opacity = logo.glintH.material.opacity = 0.6 * Math.sin(Math.PI * clamp(gk));
-  logo.key.position.set(gx, 0.6, 2.2);
-  logo.key.intensity = gk > 0 && gk < 1 ? 10 * Math.sin(Math.PI * clamp(gk)) : 0;
-  logo.fill.intensity = 1.2 + pulse * 2;
   for (const p of logo.sparks) {
     const a = lt - 1.1 - p.t0 * 0.3;
     p.s.visible = a > 0 && a < 1.8;
@@ -618,7 +621,7 @@ window.renderFrame = (t) => {
   }
   // final post using params of the center time
   if (sh.id === 'logo') {
-    Object.assign(params, { bloom: 0.75, radial: 0, chroma: 0.0012, fade: clamp((t - 18.2) / 0.38), sat: 1.1 });
+    Object.assign(params, { bloom: 0.75, radial: 0, chroma: 0.0012, fade: clamp((t - 19.0) / 0.38), sat: 1.1 });
     params.flash = Math.max(0, 1 - (t - 15.2) / 0.35) ** 2;
   } else setupShot(t);
   texPass.map = rtAcc[1 - a].texture;
@@ -641,7 +644,8 @@ window.frameData = () => overlay.toDataURL('image/png');
   await document.fonts.load('120px Anton');
   await document.fonts.load('700 30px Rajdhani');
   // redraw grenade print now that Anton is loaded
-  const T2 = makeTextures();
+  const loadImg = async (u) => { const i = new Image(); i.src = u; await i.decode(); return i; };
+  const T2 = makeTextures({ wordmark: await loadImg('/brand/wordmark.png'), subtitle: await loadImg('/brand/subtitle.png') });
   grenade.traverse(o => { if (o.material && o.material.map === T.grenade) { o.material.map = T2.grenade; o.material.needsUpdate = true; } });
   await buildChars();
   await buildLogo();

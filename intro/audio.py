@@ -8,7 +8,7 @@ import wave
 import numpy as np
 
 SR = 48000
-DUR = 18.6
+DUR = 19.4
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 t_all = np.arange(N) / SR
@@ -70,6 +70,11 @@ def place(sig, t0, gain=1.0, pan=0.0):
     gr = np.sin((pan + 1) * np.pi / 4) * np.sqrt(2)
     L[i0:i0 + n] += sig[:n] * gain * gl
     R[i0:i0 + n] += sig[:n] * gain * gr
+
+
+def mix(*xs):
+    n = max(len(x) for x in xs)
+    return sum(np.pad(x, (0, n - len(x))) for x in xs)
 
 
 def tt(d):
@@ -234,7 +239,7 @@ d = 2.4
 e = engine(d, lambda x: 110 + 40 * (x / d) ** 2)
 place(e * np.linspace(0.3, 1.0, len(e)) ** 2, 4.0, 0.45)
 for tt0, pan in [(4.35, 0.3), (4.6, -0.4), (4.9, 0.5), (5.2, -0.2), (5.45, 0.4), (5.8, -0.5)]:
-    place(metal_ping(0.35, 2600 + 900 * rng.random(), seed=int(tt0 * 10)) * 0.5 + whoosh(0.18, 2000, 6000, 0.2, seed=int(tt0 * 7)) * 0.4, tt0, 0.35, pan)
+    place(mix(metal_ping(0.35, 2600 + 900 * rng.random(), seed=int(tt0 * 10)) * 0.5, whoosh(0.18, 2000, 6000, 0.2, seed=int(tt0 * 7)) * 0.4), tt0, 0.35, pan)
 place(whoosh(0.9, 300, 2500, 0.7, seed=9), 5.7, 0.8, pan=0.6)
 
 # 6.4 rival reveal: low hit + idling engine
@@ -257,7 +262,7 @@ place(riser(1.9, 150, 2600), 9.95, 0.25)
 
 # 11.8 grenade bounces then silence
 for bt, g in [(11.86, 0.6), (12.05, 0.4), (12.18, 0.25), (12.27, 0.15)]:
-    place(metal_ping(0.25, 1500, seed=int(bt * 100)) + thump(0.15, 120) * 0.5, bt, g, pan=-0.2)
+    place(mix(metal_ping(0.25, 1500, seed=int(bt * 100)), thump(0.15, 120) * 0.5), bt, g, pan=-0.2)
 place(onepole_lp(rng.standard_normal(int(0.5 * SR)), 2500) * np.exp(-tt(0.5) * 4) * 0.15, 12.25, 0.4)
 
 # 12.75 EXPLOSION
@@ -284,10 +289,13 @@ place(boom(2.8, 50, 30, noise=0.4, bright=8000, seed=10), 15.2, 0.8)
 place(reverb(braam(3.2, 36.71), 3.5, 0.4), 15.2, 0.6)
 for k in range(7):
     place(whoosh(0.35, 800, 5000, 0.6, seed=20 + k), 15.2 + 0.15 + [0, 0.32, 0.12, 0.44, 0.2, 0.36, 0.06][k] * 0.9, 0.22, pan=(k - 3) / 4)
-place(reverb(metal_ping(2.5, 1760, seed=30) + metal_ping(2.5, 2637, seed=31) * 0.6, 3.0, 0.5), 16.45, 0.5)
+place(reverb(mix(metal_ping(2.5, 1760, seed=30), metal_ping(2.5, 2637, seed=31) * 0.6), 3.0, 0.5), 16.45, 0.5)
 sh_t = tt(1.2)
 shimmer = fft_filter(rng.standard_normal(len(sh_t)), lo=6000) * np.sin(np.pi * sh_t / 1.2) ** 2 * 0.25
 place(shimmer, 17.0, 0.6)
+# tagline sting
+place(whoosh(0.5, 600, 4000, 0.7, seed=40), 17.25, 0.35, pan=-0.3)
+place(reverb(mix(thump(0.6, 45), metal_ping(1.2, 1320, seed=41) * 0.4), 2.5, 0.4), 17.5, 0.6)
 
 # ---------------------------------------------------------------- master
 mix = np.stack([L, R], 1)

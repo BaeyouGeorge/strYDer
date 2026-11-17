@@ -2,7 +2,7 @@
 // Any of them can be replaced by dropping a PNG with transparency into /chars
 // (hero_full.png, hero_bust.png, rival_bust.png).
 
-const GREEN = '#39ff8f';
+const GREEN = '#7a5cff'; // brand blue-violet
 const RED = '#ff2a3a';
 
 function canvas(w, h) {
@@ -77,11 +77,6 @@ export function drawHeroFull() {
   g.fillRect(-27, -7, 54, 14);
   g.restore();
 
-  // hood behind head
-  g.fillStyle = hood;
-  g.beginPath();
-  g.moveTo(194, 214); g.quadraticCurveTo(184, 52, 256, 50); g.quadraticCurveTo(328, 52, 318, 214);
-  g.closePath(); g.fill();
   // torso
   g.beginPath();
   g.moveTo(150, 214); g.quadraticCurveTo(256, 172, 362, 214);
@@ -98,57 +93,98 @@ export function drawHeroFull() {
   // chest emblem
   glowLine(g, [[238, 300], [256, 288], [274, 300]], GREEN, 5, 14);
 
-  // head + mask
-  g.fillStyle = '#1b1d21';
-  g.beginPath(); g.ellipse(256, 128, 44, 52, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#0b0c0d';
-  g.beginPath(); g.roundRect(218, 128, 76, 52, 20); g.fill();
-  g.strokeStyle = '#2e3236'; g.lineWidth = 3;
-  for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(232 + i * 12, 146); g.lineTo(232 + i * 12, 170); g.stroke(); }
-  // visor eyes
-  glowLine(g, [[222, 116], [246, 122]], GREEN, 7, 22);
-  glowLine(g, [[266, 122], [290, 116]], GREEN, 7, 22);
-  // hood rim around face
-  g.strokeStyle = '#33373d'; g.lineWidth = 8;
-  g.beginPath(); g.ellipse(256, 122, 52, 62, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+  // head: face in shadow, glowing X eyes, spiky hair, high collar over the mouth
+  g.fillStyle = '#121318';
+  g.beginPath(); g.ellipse(256, 132, 42, 50, 0, 0, Math.PI * 2); g.fill();
+  xEyes(g, 256, 126, 1.0, 0);
+  spikyHair(g, 256, 108, 1.0, 0);
+  collar(g, 256, 196, 1.0);
 
   shade(g, W, H, 'rgba(255,255,255,0)', 'rgba(0,0,0,0.35)');
   return c;
 }
 
+// ---------- shared head parts (brand look: spiky blue-violet hair, X eyes, high collar) ----------
+const HAIR_A = '#4f6bff', HAIR_B = '#9b3dff';
+
+function spikyHair(g, cx, cy, s, lean) {
+  // lean > 0 sweeps spikes toward screen-right (back of head when facing left)
+  const spikes = [
+    [-46, 10, -78, -30], [-34, -8, -58, -66], [-18, -20, -30, -98], [0, -24, 4, -118],
+    [18, -20, 40, -104], [34, -10, 72, -78], [46, 6, 92, -40], [40, 24, 100, 8],
+  ];
+  const gr = g.createLinearGradient(cx - 90 * s, cy, cx + 90 * s, cy - 100 * s);
+  gr.addColorStop(0, HAIR_A); gr.addColorStop(1, HAIR_B);
+  g.save();
+  g.fillStyle = '#1a1530';
+  g.beginPath(); g.ellipse(cx, cy + 6 * s, 54 * s, 40 * s, 0, Math.PI, Math.PI * 2); g.fill();
+  for (const [bx, by, tx, ty] of spikes) {
+    const x0 = cx + bx * s, y0 = cy + by * s, x1 = cx + (tx + lean * 30) * s, y1 = cy + ty * s;
+    const nx = -(y1 - y0), ny = x1 - x0, L = Math.hypot(nx, ny), w = 20 * s;
+    g.fillStyle = '#1a1530';
+    g.beginPath(); g.moveTo(x0 + nx / L * w, y0 + ny / L * w); g.lineTo(x1, y1); g.lineTo(x0 - nx / L * w, y0 - ny / L * w); g.closePath(); g.fill();
+    // lit edge
+    g.strokeStyle = gr; g.lineWidth = 4 * s; g.shadowColor = HAIR_B; g.shadowBlur = 14 * s;
+    g.beginPath(); g.moveTo(x0 + nx / L * w, y0 + ny / L * w); g.lineTo(x1, y1); g.stroke();
+    g.shadowBlur = 0;
+  }
+  // fringe over the forehead
+  g.fillStyle = '#211a3d';
+  g.beginPath();
+  g.moveTo(cx - 48 * s, cy + 8 * s);
+  for (let i = 0; i <= 6; i++) { const x = cx + (-48 + i * 16) * s; g.lineTo(x + 6 * s, cy + (i % 2 ? 30 : 14) * s); g.lineTo(x + 14 * s, cy + 6 * s); }
+  g.lineTo(cx + 50 * s, cy - 4 * s); g.closePath(); g.fill();
+  g.restore();
+}
+
+function xEyes(g, cx, cy, s, skew) {
+  for (const dx of [-17, 17]) {
+    const x = cx + (dx + skew) * s, y = cy, r = 9 * s;
+    glowLine(g, [[x - r, y - r * 0.8], [x + r, y + r * 0.8]], '#c9b8ff', 4 * s, 20 * s);
+    glowLine(g, [[x + r, y - r * 0.8], [x - r, y + r * 0.8]], '#c9b8ff', 4 * s, 20 * s);
+    glowLine(g, [[x - r, y - r * 0.8], [x + r, y + r * 0.8]], HAIR_B, 2 * s, 30 * s);
+  }
+}
+
+function collar(g, cx, cy, s) {
+  // tall jacket collar covering the mouth, with a small crowned-S badge
+  g.fillStyle = '#16171c';
+  g.beginPath();
+  g.moveTo(cx - 70 * s, cy + 30 * s); g.lineTo(cx - 56 * s, cy - 42 * s); g.quadraticCurveTo(cx, cy - 30 * s, cx + 56 * s, cy - 42 * s);
+  g.lineTo(cx + 70 * s, cy + 30 * s); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(140,120,255,0.35)'; g.lineWidth = 3 * s;
+  g.beginPath(); g.moveTo(cx - 56 * s, cy - 42 * s); g.quadraticCurveTo(cx, cy - 30 * s, cx + 56 * s, cy - 42 * s); g.stroke();
+  // badge
+  const bx = cx - 36 * s, by = cy - 8 * s;
+  g.save();
+  g.shadowColor = '#4f8bff'; g.shadowBlur = 10 * s;
+  g.fillStyle = '#4f8bff';
+  g.font = `bold ${20 * s}px Anton, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('S', bx, by + 6 * s);
+  g.beginPath(); g.moveTo(bx - 9 * s, by - 8 * s); g.lineTo(bx - 9 * s, by - 16 * s); g.lineTo(bx - 4 * s, by - 11 * s); g.lineTo(bx, by - 18 * s);
+  g.lineTo(bx + 4 * s, by - 11 * s); g.lineTo(bx + 9 * s, by - 16 * s); g.lineTo(bx + 9 * s, by - 8 * s); g.closePath(); g.fill();
+  g.restore();
+}
+
 // ---------- HERO bust, 3/4 view facing screen-left (driver shot) ----------
 export function drawHeroBust() {
   const W = 512, H = 512, c = canvas(W, H), g = c.getContext('2d');
-  const hood = '#2a2d33';
-  // shoulders
-  g.fillStyle = hood;
+  // shoulders / jacket
+  g.fillStyle = '#1c1d23';
   g.beginPath();
   g.moveTo(10, 512); g.quadraticCurveTo(40, 335, 220, 322); g.quadraticCurveTo(440, 310, 500, 512);
   g.closePath(); g.fill();
-  // green collar stripe
-  glowLine(g, [[150, 352], [240, 338], [330, 340]], GREEN, 6, 16);
-  // hood
-  g.fillStyle = '#25282d';
-  g.beginPath();
-  g.moveTo(140, 336); g.quadraticCurveTo(102, 150, 248, 92); g.quadraticCurveTo(392, 72, 384, 240);
-  g.quadraticCurveTo(378, 330, 336, 352); g.closePath(); g.fill();
-  // face opening (in shadow)
-  g.fillStyle = '#0a0b0d';
-  g.beginPath();
-  g.moveTo(160, 318); g.quadraticCurveTo(140, 168, 238, 136); g.quadraticCurveTo(290, 190, 280, 318);
-  g.closePath(); g.fill();
-  // mask lower half
-  g.fillStyle = '#121416';
-  g.beginPath(); g.moveTo(158, 238); g.quadraticCurveTo(220, 226, 280, 236); g.lineTo(276, 312); g.quadraticCurveTo(220, 326, 166, 312); g.closePath(); g.fill();
-  g.strokeStyle = '#30353a'; g.lineWidth = 3;
-  for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(176 + i * 16, 254); g.lineTo(178 + i * 16, 300); g.stroke(); }
-  // eyes (glowing slits)
-  glowLine(g, [[170, 206], [204, 214]], GREEN, 8, 24);
-  glowLine(g, [[226, 214], [262, 204]], GREEN, 8, 24);
-  // hood edge highlight
-  g.strokeStyle = 'rgba(160,170,180,0.25)'; g.lineWidth = 5;
-  g.beginPath(); g.moveTo(150, 320); g.quadraticCurveTo(128, 160, 240, 120); g.stroke();
-  shade(g, W, H, 'rgba(255,255,255,0.03)', 'rgba(0,0,0,0.4)');
+  glowLine(g, [[120, 420], [200, 372]], GREEN, 4, 14); // jacket piping
+  // head
+  g.fillStyle = '#121318';
+  g.beginPath(); g.ellipse(236, 262, 70, 82, -0.1, 0, Math.PI * 2); g.fill();
+  // subtle cheek/edge light from the dashboard
+  g.strokeStyle = 'rgba(150,130,255,0.35)'; g.lineWidth = 5;
+  g.beginPath(); g.ellipse(236, 262, 70, 82, -0.1, Math.PI * 0.75, Math.PI * 1.15); g.stroke();
+  xEyes(g, 216, 258, 1.6, -8);
+  spikyHair(g, 244, 226, 1.6, 0.6);
+  collar(g, 236, 362, 1.6);
+  shade(g, W, H, 'rgba(255,255,255,0.03)', 'rgba(0,0,0,0.35)');
   return c;
 }
 

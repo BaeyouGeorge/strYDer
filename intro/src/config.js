@@ -1,7 +1,7 @@
 // Edit these to customize the intro.
 export const TEAM = {
-  name: 'STRYDER',      // 3D logo text + grenade print
-  sub: 'TEAM',          // small line under the logo
+  name: 'STRYDER',      // fallback text if brand images are missing
+  sub: 'STRYDERGAMING', // fallback subtitle
 };
 
 export const TEXT = {
@@ -12,8 +12,15 @@ export const TEXT = {
   punch: 'WE BURN THEM.',
   wiped: 'SQUAD WIPED',
   kills: [
-    ['STRYDER_GHOST', 'VEX_RAZOR'],
-    ['STRYDER_GHOST', 'VEX_NOVA'],
-    ['STRYDER_GHOST', 'VEX_KAIN'],
+    ['STRYDER', 'VEX_RAZOR'],
+    ['STRYDER', 'VEX_NOVA'],
+    ['STRYDER', 'VEX_KAIN'],
   ],
+};
+
+// Brand colors (from the STRYDER banner)
+export const BRAND = {
+  blue: '#3f7bff',
+  purple: '#a845ff',
+  glow: '#7a5cff',
 };
