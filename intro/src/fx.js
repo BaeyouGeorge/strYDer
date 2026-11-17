@@ -69,6 +69,7 @@ export class Explosion {
   constructor(scene, T, opts = {}) {
     this.n = opts.n ?? 90;
     this.scale = opts.scale ?? 1;
+    this.pal = Object.assign({ hot: [3.2, 1.5, 0.45], ember: [1.1, 0.32, 0.07], soot: [0.06, 0.045, 0.04], core: [1, 0.35, 0.08], spark: [4, 2.0, 0.7], light: 0xff9a50, smoke: [1.9, 1.15, 0.85] }, opts.palette || {});
     const r = rng(opts.seed ?? 42);
     this.fire = []; this.smoke = []; this.sparks = []; this.debris = [];
     const dir = () => { const a = r() * Math.PI * 2, u = 0.15 + r() * 0.85; const s = Math.sqrt(1 - u * u); return new THREE.Vector3(Math.cos(a) * s, u, Math.sin(a) * s); };
@@ -85,15 +86,15 @@ export class Explosion {
       m.visible = false; m.castShadow = true; scene.add(m);
       const d = dir(); this.debris.push({ m, v: d.multiplyScalar(8 + r() * 16), w: new THREE.Vector3(r() * 10, r() * 10, r() * 10) });
     }
-    this.ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 64), new THREE.MeshBasicMaterial({ color: 0xffa060, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 64), new THREE.MeshBasicMaterial({ color: opts.ringColor ?? 0xffa060, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
     this.ring.rotation.x = -Math.PI / 2; this.ring.visible = false; scene.add(this.ring);
-    this.light = new THREE.PointLight(0xff9a50, 0, 0, 2); scene.add(this.light);
+    this.light = new THREE.PointLight(this.pal.light, 0, 0, 2); scene.add(this.light);
   }
   update(t, tE, P) {
     const dt = t - tE, on = dt >= 0, S = this.scale;
     this.light.visible = on;
     this.light.position.copy(P).add(new THREE.Vector3(0, 2, 0));
-    this.light.intensity = on ? 2500 * S * S * (Math.exp(-dt * 2.2) * 1.0 + 0.15 * Math.exp(-dt * 0.5)) * (0.85 + 0.15 * Math.sin(dt * 40)) : 0;
+    this.light.intensity = on ? (this.pal.lightScale ?? 1) * 2500 * S * S * (Math.exp(-dt * 2.2) * 1.0 + 0.15 * Math.exp(-dt * 0.5)) * (0.85 + 0.15 * Math.sin(dt * 40)) : 0;
     for (const p of this.fire) {
       const sp = p.s; sp.visible = on && dt < 3.5;
       if (!sp.visible) continue;
@@ -104,14 +105,14 @@ export class Explosion {
       if (p.core) {
         const heat = Math.exp(-dt * 2.2);
         const b = 0.6 + 2.6 * heat;
-        sp.material.color.setRGB(b, b * (0.35 + 0.5 * heat), b * (0.08 + 0.4 * heat * heat));
+        const cc = this.pal.core; sp.material.color.setRGB(b * cc[0], b * (cc[1] + 0.5 * heat), b * (cc[2] + 0.4 * heat * heat));
         sp.material.opacity = 0.7 * clamp(1.2 - dt * 0.9) * (dt < 0.03 ? dt / 0.03 : 1);
       } else {
         // opaque billowing fire: white-hot -> ember -> soot; tops cool first
         sp.position.y += dt * 2.2 * S * p.d.y;
         const heat = clamp(Math.exp(-dt * (0.8 + p.hv * 1.5)) * (1.35 - p.hv * 0.55) - p.d.y * 0.35 * Math.min(dt, 1.2));
         const fl = 0.75 + 0.5 * Math.sin(p.rot * 7.3) ** 2;
-        const hot = [3.2 * fl, 1.5 * fl, 0.45 * fl], ember = [1.1, 0.32, 0.07], soot = [0.06, 0.045, 0.04];
+        const hot = this.pal.hot.map(v => v * fl), ember = this.pal.ember, soot = this.pal.soot;
         let c;
         if (heat > 0.45) { const k = (heat - 0.45) / 0.55; c = ember.map((e, j) => e + (hot[j] - e) * k); }
         else { const k = heat / 0.45; c = soot.map((s, j) => s + (ember[j] - s) * k * k); }
@@ -128,7 +129,7 @@ export class Explosion {
       const size = p.sz * S * (1 + a * 0.9);
       sp.scale.set(size, size, 1);
       const v = 0.035 + 0.12 * Math.exp(-a * 2.5);
-      sp.material.color.setRGB(v * 1.9, v * 1.15, v * 0.85);
+      const sm = this.pal.smoke; sp.material.color.setRGB(v * sm[0], v * sm[1], v * sm[2]);
       sp.material.opacity = 0.6 * smooth(0, 0.25, a) * clamp(1.2 - a * 0.35);
       sp.material.rotation = p.rot + a * 0.3;
     }
@@ -139,7 +140,7 @@ export class Explosion {
       const k = 1 - dt / p.life;
       const size = 0.35 * S * (0.5 + k);
       sp.scale.set(size, size, 1);
-      sp.material.color.setRGB(4, 2.0, 0.7);
+      sp.material.color.setRGB(...this.pal.spark);
       sp.material.opacity = k;
     }
     for (const p of this.debris) {

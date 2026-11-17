@@ -276,3 +276,74 @@ export async function loadCharacter(name, fallback) {
     return { canvas: fallback(), custom: false };
   }
 }
+
+// ---------- HERO free-fall: spread-eagle, seen from below/front ----------
+export function drawHeroSky() {
+  const W = 768, H = 768, c = canvas(W, H), g = c.getContext('2d');
+  const jacket = '#1c1d23', pants = '#262a26';
+  const mirror = (fn) => { fn(); g.save(); g.translate(W, 0); g.scale(-1, 1); fn(); g.restore(); };
+  mirror(() => {
+    // legs spread down-out, knees slightly bent
+    limb(g, 352, 470, 272, 600, 78, 62, pants);
+    limb(g, 272, 600, 214, 700, 62, 50, pants);
+    g.fillStyle = '#0e0f10'; g.beginPath(); g.ellipse(204, 716, 34, 24, -0.6, 0, Math.PI * 2); g.fill();
+    // arms spread up-out
+    limb(g, 330, 300, 214, 236, 66, 56, jacket);
+    limb(g, 214, 236, 108, 150, 56, 46, jacket);
+    g.fillStyle = '#1a1c1f'; g.beginPath(); g.arc(96, 140, 30, 0, Math.PI * 2); g.fill();
+  });
+  // torso
+  g.fillStyle = jacket;
+  g.beginPath(); g.moveTo(290, 290); g.quadraticCurveTo(384, 262, 478, 290); g.lineTo(456, 480); g.lineTo(312, 480); g.closePath(); g.fill();
+  g.fillStyle = '#121315'; g.fillRect(316, 462, 136, 20);
+  glowLine(g, [[300, 330], [350, 360]], GREEN, 5, 16);
+  // head with hair blown upward by the wind
+  g.fillStyle = '#121318'; g.beginPath(); g.ellipse(384, 236, 46, 54, 0, 0, Math.PI * 2); g.fill();
+  xEyes(g, 384, 236, 1.05, 0);
+  spikyHair(g, 384, 206, 1.15, 0);
+  collar(g, 384, 300, 1.0);
+  shade(g, W, H, 'rgba(255,255,255,0.02)', 'rgba(0,0,0,0.25)');
+  return c;
+}
+
+// ---------- RIVAL full body: armored trooper, spiked helmet, red T-visor, rifle ----------
+export function drawRivalFull(variant = 0) {
+  const W = 512, H = 1024, c = canvas(W, H), g = c.getContext('2d');
+  const armor = ['#24262b', '#2a2526', '#1f2328'][variant % 3], suit = '#16171a';
+  const mirror = (fn) => { fn(); g.save(); g.translate(W, 0); g.scale(-1, 1); fn(); g.restore(); };
+  mirror(() => {
+    limb(g, 222, 520, 214, 720, 84, 66, suit);
+    limb(g, 214, 720, 210, 905, 66, 54, suit);
+    g.fillStyle = armor; g.beginPath(); g.roundRect(186, 690, 56, 64, 12); g.fill(); // knee pad
+    g.fillStyle = '#0b0b0c'; g.beginPath(); g.roundRect(176, 890, 66, 86, 14); g.fill();
+    // pauldron with spikes
+    g.fillStyle = armor; g.beginPath(); g.ellipse(170, 236, 64, 44, -0.35, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#5a1016';
+    for (let i = 0; i < 3; i++) { const x = 132 + i * 30, y = 214 - i * 6; g.beginPath(); g.moveTo(x - 10, y + 8); g.lineTo(x - 2, y - 36); g.lineTo(x + 10, y + 6); g.closePath(); g.fill(); }
+  });
+  // arms holding rifle across the body
+  limb(g, 168, 250, 150, 380, 62, 54, suit);
+  limb(g, 150, 380, 230, 440, 54, 46, suit);
+  limb(g, 344, 250, 372, 370, 62, 54, suit);
+  limb(g, 372, 370, 330, 330, 54, 46, suit);
+  // torso armor
+  g.fillStyle = armor;
+  g.beginPath(); g.moveTo(170, 220); g.quadraticCurveTo(256, 190, 342, 220); g.lineTo(326, 380); g.lineTo(306, 530); g.lineTo(206, 530); g.lineTo(186, 380); g.closePath(); g.fill();
+  g.strokeStyle = '#3a3c42'; g.lineWidth = 4;
+  g.beginPath(); g.moveTo(206, 300); g.lineTo(306, 300); g.moveTo(214, 380); g.lineTo(298, 380); g.stroke();
+  glowLine(g, [[236, 340], [276, 340]], '#ff2a3a', 5, 16);
+  // rifle
+  g.save(); g.translate(256, 390); g.rotate(-0.55);
+  g.fillStyle = '#0a0a0b'; g.fillRect(-150, -14, 300, 28); g.fillRect(40, -14, 30, 70); g.fillRect(-150, -20, 60, 40); g.fillRect(150, -6, 60, 12);
+  g.restore();
+  // helmet
+  g.fillStyle = '#7a121b';
+  for (let i = -2; i <= 2; i++) { const x = 256 + i * 16, h = 52 - Math.abs(i) * 12; g.beginPath(); g.moveTo(x - 9, 82); g.lineTo(x, 82 - h); g.lineTo(x + 9, 82); g.closePath(); g.fill(); }
+  g.fillStyle = armor; g.beginPath(); g.ellipse(256, 134, 62, 68, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#060607';
+  g.beginPath(); g.moveTo(204, 122); g.lineTo(308, 122); g.lineTo(298, 146); g.lineTo(270, 150); g.lineTo(264, 192); g.lineTo(248, 192); g.lineTo(242, 150); g.lineTo(214, 146); g.closePath(); g.fill();
+  glowLine(g, [[212, 132], [300, 132]], '#ff2a3a', 7, 22);
+  glowLine(g, [[256, 138], [256, 182]], '#ff2a3a', 5, 16);
+  shade(g, W, H, 'rgba(255,255,255,0)', 'rgba(0,0,0,0.35)');
+  return c;
+}

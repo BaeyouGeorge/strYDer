@@ -10,7 +10,7 @@ const brandGrad = (g, x0, x1) => { const gr = g.createLinearGradient(x0, 0, x1, 
 function hash(n) { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); }
 
 // Lower-third style block: green bar + lines sliding up from a mask
-function lowerThird(g, t, t0, t1, lines, x, y, S) {
+export function lowerThird(g, t, t0, t1, lines, x, y, S) {
   if (t < t0 || t > t1) return;
   const outK = clamp((t1 - t) / 0.3);
   const barH = lines.reduce((a, l) => a + l.size * S * 1.08, 0);
@@ -39,7 +39,7 @@ function lowerThird(g, t, t0, t1, lines, x, y, S) {
   g.restore();
 }
 
-function centerSlow(g, t, t0, t1, text, W, H, S) {
+export function centerSlow(g, t, t0, t1, text, W, H, S) {
   if (t < t0 || t > t1) return;
   const u = (t - t0) / (t1 - t0);
   const a = clamp((t - t0) / 0.35) * clamp((t1 - t) / 0.3);
@@ -54,7 +54,7 @@ function centerSlow(g, t, t0, t1, text, W, H, S) {
   g.restore();
 }
 
-function bigPunch(g, t, t0, t1, text, W, H, S) {
+export function bigPunch(g, t, t0, t1, text, W, H, S, pal = ['#fffbe8', '#ffd27a', '#ff7a1a', 'rgba(255,120,30,0.9)']) {
   if (t < t0 || t > t1) return;
   const dt = t - t0;
   const sc = 1 + 0.5 * (1 - easeOutBack(dt / 0.22)) ;
@@ -75,8 +75,8 @@ function bigPunch(g, t, t0, t1, text, W, H, S) {
   g.globalCompositeOperation = 'source-over';
   g.globalAlpha = a;
   const gr = g.createLinearGradient(0, -100 * S, 0, 100 * S);
-  gr.addColorStop(0, '#fffbe8'); gr.addColorStop(0.55, '#ffd27a'); gr.addColorStop(1, '#ff7a1a');
-  g.shadowColor = 'rgba(255,120,30,0.9)'; g.shadowBlur = 40 * S;
+  gr.addColorStop(0, pal[0]); gr.addColorStop(0.55, pal[1]); gr.addColorStop(1, pal[2]);
+  g.shadowColor = pal[3]; g.shadowBlur = 40 * S;
   g.fillStyle = gr; g.fillText(text, 0, 0);
   g.restore();
 }
@@ -91,7 +91,7 @@ function grenadeIcon(g, x, y, r) {
   g.restore();
 }
 
-function killfeed(g, t, t0, t1, entries, W, H, S) {
+export function killfeed(g, t, t0, t1, entries, W, H, S, icon = grenadeIcon) {
   if (t < t0 || t > t1) return;
   const fade = clamp((t1 - t) / 0.3);
   let y = 60 * S;
@@ -111,7 +111,7 @@ function killfeed(g, t, t0, t1, entries, W, H, S) {
     g.fillStyle = GREEN; g.fillRect(x, y, 5 * S, h);
     g.textBaseline = 'middle';
     g.fillStyle = '#8fb0ff'; g.fillText(e[0], x + 20 * S, y + h / 2 + 1 * S);
-    grenadeIcon(g, x + 20 * S + wA + 26 * S, y + h / 2, 12 * S);
+    icon(g, x + 20 * S + wA + 26 * S, y + h / 2, 12 * S);
     g.fillStyle = '#ff5a5a'; g.fillText(e[1], x + 20 * S + wA + 54 * S, y + h / 2 + 1 * S);
     g.restore();
     y += h + 10 * S;
@@ -144,4 +144,10 @@ export function drawOverlay(g, t, W, H) {
   centerSlow(g, t, 10.0, 11.75, TEXT.beat3, W, H, S);
   bigPunch(g, t, 12.85, 14.95, TEXT.punch, W, H, S);
   killfeed(g, t, 13.35, 15.0, TEXT.kills, W, H, S);
+}
+
+export function boltIcon(g, x, y, r) {
+  g.save(); g.fillStyle = '#c9b8ff'; g.shadowColor = '#a845ff'; g.shadowBlur = r;
+  g.beginPath(); g.moveTo(x + r * 0.3, y - r); g.lineTo(x - r * 0.5, y + r * 0.1); g.lineTo(x, y + r * 0.1); g.lineTo(x - r * 0.3, y + r); g.lineTo(x + r * 0.55, y - r * 0.2); g.lineTo(x + r * 0.05, y - r * 0.2); g.closePath(); g.fill();
+  g.restore();
 }

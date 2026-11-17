@@ -24,3 +24,16 @@ export const BRAND = {
   purple: '#a845ff',
   glow: '#7a5cff',
 };
+
+// Script for "THE DROP" (src/drop.js)
+export const DROP_TEXT = {
+  hook1: '100 DROP IN.',
+  hook2: 'ONE WALKS OUT.',
+  beat3: "THE STORM DOESN'T PICK SIDES.",
+  punch: 'IT PICKS ME.',
+  kills: [
+    ['STRYDER', 'VEX_RAZOR'],
+    ['STRYDER', 'VEX_NOVA'],
+    ['STRYDER', 'VEX_KAIN'],
+  ],
+};

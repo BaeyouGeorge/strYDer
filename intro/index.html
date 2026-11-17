@@ -8,5 +8,5 @@ canvas{position:absolute;left:0;top:0;display:block}
 </style>
 <script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
 </head><body>
-<script type="module" src="/src/main.js"></script>
+<script type="module">const s = new URLSearchParams(location.search).get("story") || "drop"; import(s === "bridge" ? "/src/main.js" : "/src/drop.js");</script>
 </body></html>

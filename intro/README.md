@@ -1,40 +1,46 @@
-# STRYDER — "The Bridge" team intro
+# STRYDER — "THE DROP" intro
 
-An ~18.6 second cinematic team intro rendered entirely in code: a three.js scene drawn
+A ~19 second cinematic channel intro rendered entirely in code: a three.js scene drawn
 frame by frame in headless Chromium, synthesized sound design, and ffmpeg for encoding.
-All visuals, characters and audio are original.
+Story, characters, visuals and audio are original; the STRYDER wordmark, subtitle and
+tagline come from the channel banner (`brand/`).
 
-## Story
+## Story — "THE DROP" (default, `src/drop.js`)
 
 | Time | Shot | On screen |
 |------|------|-----------|
-| 0.0–2.4 | Sunset establishing shot of a burning steel truss bridge | **ONE BRIDGE.** / FOUR SQUADS WAITING ON IT. |
-| 2.4–4.0 | Close-up of the masked driver at speed | **THEY SAID NOBODY CROSSES.** |
-| 4.0–6.4 | Low chase: red roadster weaving through wrecks, bullets sparking | |
-| 6.4–8.0 | The rival waits in a black car blocking the road | |
-| 8.0–9.8 | Drift stop in tire smoke, hero steps out | |
-| 9.8–11.8 | Slow-mo grenade (team logo printed on it) flies into the lens | **WE DON'T CROSS BRIDGES.** |
-| 11.8–12.6 | Grenade bounces and rolls under the rival's car | |
-| 12.6–15.2 | Hero walks toward camera, huge explosion behind, rival car flips overhead | **WE BURN THEM.** + killfeed |
-| 15.2–18.6 | White flash → 3D logo assembles with light rays and a glint | **STRYDER** / TEAM |
+| 0.0–2.6 | Cargo plane cuts through a lightning storm above the clouds | **100 DROP IN.** |
+| 2.6–4.3 | Inside the plane: STRYDER walks to the open ramp, lightning lights the X eyes, jumps | **ONE WALKS OUT.** |
+| 4.3–6.0 | Free-fall with him, then he dives past the lens | |
+| 6.0–7.3 | POV dive through the clouds; a purple flare marks the crate on the island | **THE STORM DOESN'T PICK SIDES.** |
+| 7.3–9.0 | Branded parachute snaps open against the storm | |
+| 9.0–10.6 | Three red-visor rivals walk out of the fog toward the crate | |
+| 10.6–11.6 | Close-up: the rival looks up | |
+| 11.6–13.0 | Slow-mo: STRYDER lands on the crate between them | |
+| 13.0–15.2 | Lightning strikes *him*; a purple shockwave wipes the squad | **IT PICKS ME.** + killfeed |
+| 15.2–19.4 | Flash → STRYDER wordmark assembles, STRYDERGAMING, EVERY DROP BUILDS LEGACY | |
+
+An earlier alternative cut ("The Bridge", car chase + grenade) is kept in `src/main.js`
+(`?story=bridge`, audio: `audio.py`).
 
 ## Customize
 
-- **Team name / texts:** `src/config.js` (logo, grenade print, titles, killfeed names).
+- **Texts:** `DROP_TEXT` in `src/config.js` (titles, killfeed names).
+- **Brand art:** `brand/wordmark.png`, `brand/subtitle.png`, `brand/tagline.png`.
 - **Your own characters:** drop transparent PNGs into `chars/`:
   - `hero_full.png` — full body, standing, facing camera (≈1:2 aspect)
   - `hero_bust.png` — head & shoulders, looking to the left (square)
   - `rival_bust.png` — head & shoulders, facing camera (square)
 
   Anything missing falls back to the built-in procedural characters.
-- **Shot timing / cameras:** `SHOTS` and `setupShot()` in `src/main.js`.
-- **Sound:** `audio.py` (timeline mirrors the shot list).
+- **Shot timing / cameras:** `SHOTS` and `setupShot()` in `src/drop.js`.
+- **Sound:** `audio_drop.py` (timeline mirrors the shot list).
 
 ## Render
 
 ```bash
 npm install
-python3 audio.py intro.wav
+python3 audio_drop.py intro.wav
 node render.js video video.mp4 --w 1920 --h 1080          # full video (silent)
 ffmpeg -i video.mp4 -i intro.wav -c:v copy -c:a aac -b:a 256k -shortest stryder_intro.mp4
 node render.js stills out/ 3.2 9.5 13.1 --w 1280 --h 720  # quick stills for checking
